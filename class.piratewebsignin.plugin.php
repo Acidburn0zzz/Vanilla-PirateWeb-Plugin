@@ -73,7 +73,7 @@ class PirateWebSignInPlugin extends Gdn_Plugin {
          // Add the PirateWeb method to the controller.
          $Method = array(
             'Name' => 'PirateWeb',
-            'SignInHtml' => "<a id=\"PirateWebAuth\" href=\"$SigninHref\" class=\"PopupWindow\" popupHref=\"$PopupSigninHref\" popupHeight=\"400\" popupWidth=\"800\" rel=\"nofollow\" ><img src=\"$ImgSrc\" alt=\"$ImgAlt\" /></a>");
+            'SignInHtml' => "<a id=\"PirateWebAuth\" href=\"$SigninHref\" class=\"PopupWindow\" popupHref=\"$PopupSigninHref\" popupHeight=\"600\" popupWidth=\"800\" rel=\"nofollow\" ><img src=\"$ImgSrc\" alt=\"$ImgAlt\" /></a>");
 
          $Sender->Data['Methods'][] = $Method;
       }
@@ -92,7 +92,7 @@ class PirateWebSignInPlugin extends Gdn_Plugin {
       $ImgAlt = T('Sign In with PirateWeb');
       $SigninHref = $this->_AuthorizeHref();
       $PopupSigninHref = $this->_AuthorizeHref(TRUE);
-      return "<a id=\"PirateWebAuth\" href=\"$SigninHref\" class=\"PopupWindow\" title=\"$ImgAlt\" popupHref=\"$PopupSigninHref\" popupHeight=\"400\" popupWidth=\"800\" rel=\"nofollow\" ><img src=\"$ImgSrc\" alt=\"$ImgAlt\" /></a>";
+      return "<a id=\"PirateWebAuth\" href=\"$SigninHref\" class=\"PopupWindow\" title=\"$ImgAlt\" popupHref=\"$PopupSigninHref\" popupHeight=\"600\" popupWidth=\"800\" rel=\"nofollow\" ><img src=\"$ImgSrc\" alt=\"$ImgAlt\" /></a>";
    }
 
 	public function Base_BeforeSignInLink_Handler($Sender) {
