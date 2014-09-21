@@ -102,17 +102,30 @@ class PirateWebPlugin extends Gdn_Plugin {
         if ($Session->Stash('OpenID', '', FALSE) || $OpenID->validate()) {
             $Attr = $OpenID->getAttributes();
 
+            $firstName = GetValue('namePerson/first', $Attr);
+            $lastName = GetValue('namePerson/last', $Attr);
+
+            if (!$firstName && isset($_GET['openid_ax_value_namePerson_first_1'])) {
+                $firstName = $_GET['openid_ax_value_namePerson_first_1'];
+            }
+            if (!$lastName && isset($_GET['openid_ax_value_namePerson_last_1'])) {
+                $lastName = $_GET['openid_ax_value_namePerson_last_1'];
+            }
+
+
             $Form = $Sender->Form; //new Gdn_Form();
             $ID = $OpenID->identity;
             $Form->SetFormValue('UniqueID', $ID);
             $Form->SetFormValue('Provider', self::$ProviderKey);
             $Form->SetFormValue('ProviderName', 'PirateWeb');
-            $Form->SetFormValue('FullName', GetValue('namePerson/first', $Attr).' '.GetValue('namePerson/last', $Attr));
-            $Form->SetFormValue('ConnectName', GetValue('namePerson/first', $Attr).' '.GetValue('namePerson/last', $Attr));
+            $Form->SetFormValue('FullName', $firstName.' '.$lastName);
+            $Form->SetFormValue('ConnectName', $firstName.'_'.$lastName);
 
             if ($Email = GetValue('contact/email', $Attr)) {
                 $Form->SetFormValue('Email', $Email);
             }
+
+            $Form->SetData($Form->FormValues());
 
             $Sender->SetData('Verified', TRUE);
             $Session->Stash('OpenID', $OpenID);
