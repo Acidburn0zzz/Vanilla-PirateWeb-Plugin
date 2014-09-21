@@ -36,7 +36,6 @@ class PirateWebPlugin extends Gdn_Plugin {
       $UrlParts = explode('?', $Url);
       parse_str(GetValue(1, $UrlParts, ''), $Query);
 
-      $Query['url'] = 'http://login.piratpartiet.se/openid/xrds';
       $Path = '/'.Gdn::Request()->Path();
       $Query['Target'] = GetValue('Target', $_GET, $Path ? $Path : '/');
       if ($Popup)
@@ -69,8 +68,7 @@ class PirateWebPlugin extends Gdn_Plugin {
 
         $OpenID = new LightOpenID();
 
-        if (isset($_GET['url']))
-            $OpenID->identity = $_GET['url'];
+        $OpenID->identity = 'http://login.piratpartiet.se/openid/xrds';
 
         $Url = Url('/entry/connect/PirateWeb', TRUE);
         $UrlParts = explode('?', $Url);
@@ -109,10 +107,12 @@ class PirateWebPlugin extends Gdn_Plugin {
 
             $Form = $Sender->Form; //new Gdn_Form();
             $ID = $OpenID->identity;
+            var_dump($ID);
             $Form->SetFormValue('UniqueID', $ID);
             $Form->SetFormValue('Provider', self::$ProviderKey);
             $Form->SetFormValue('ProviderName', 'PirateWeb');
             $Form->SetFormValue('FullName', GetValue('namePerson/first', $Attr).' '.GetValue('namePerson/last', $Attr));
+            $Form->SetFormValue('ConnectName', GetValue('namePerson/first', $Attr).' '.GetValue('namePerson/last', $Attr));
 
             if ($Email = GetValue('contact/email', $Attr)) {
                 $Form->SetFormValue('Email', $Email);

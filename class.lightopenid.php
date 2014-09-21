@@ -69,7 +69,7 @@ class LightOpenID
 
     function __construct()
     {
-        $this->trustRoot = (!empty($_SERVER['HTTPS']) ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+        $this->trustRoot = Gdn::Request()->Scheme() . '://' . Gdn::Request()->Host();
         $uri = rtrim(preg_replace('#((?<=\?)|&)openid\.[^&]+#', '', $_SERVER['REQUEST_URI']), '?');
         $this->returnUrl = $this->trustRoot . $uri;
 
@@ -112,6 +112,18 @@ class LightOpenID
         case 'mode':
             return empty($this->data['openid_mode']) ? null : $this->data['openid_mode'];
         }
+    }
+
+    protected function fix_url($url) {
+        // Fix a malformed return url.
+        $urlp = parse_url($url);
+        if (isset($urlp['query'])) {
+            parse_str($urlp['query'], $query);
+            $urlp['query'] = http_build_query($query);
+
+            $url = "{$urlp['scheme']}://{$urlp['host']}{$urlp['path']}?{$urlp['query']}";
+        }
+        return $url;
     }
 
     /**
@@ -626,8 +638,9 @@ class LightOpenID
             $this->returnUrl .= (strpos($this->returnUrl, '?') ? '&' : '?')
                              .  'openid.claimed_id=' . $this->claimed_id;
         }
+        throw new Exception('URL is ');
 
-        if ($this->data['openid_return_to'] != $this->returnUrl) {
+        if ($this->fix_url($this->data['openid_return_to']) != $this->returnUrl) {
             # The return_to url must match the url of current request.
             # I'm assuing that noone will set the returnUrl to something that doesn't make sense.
             return false;
