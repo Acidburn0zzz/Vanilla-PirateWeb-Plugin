@@ -119,7 +119,10 @@ class PirateWebPlugin extends Gdn_Plugin {
             $Form->SetFormValue('Provider', self::$ProviderKey);
             $Form->SetFormValue('ProviderName', 'PirateWeb');
             $Form->SetFormValue('FullName', $firstName.' '.$lastName);
-            $Form->SetFormValue('ConnectName', $firstName.'_'.$lastName);
+
+            if (!$Form->GetFormValue('ConnectName')) {
+                $Form->SetFormValue('ConnectName', strtolower($firstName.'_'.$lastName));
+            }
 
             if ($Email = GetValue('contact/email', $Attr)) {
                 $Form->SetFormValue('Email', $Email);
