@@ -638,7 +638,6 @@ class LightOpenID
             $this->returnUrl .= (strpos($this->returnUrl, '?') ? '&' : '?')
                              .  'openid.claimed_id=' . $this->claimed_id;
         }
-        throw new Exception('URL is ');
 
         if ($this->fix_url($this->data['openid_return_to']) != $this->returnUrl) {
             # The return_to url must match the url of current request.

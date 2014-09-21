@@ -38,22 +38,13 @@ class PirateWebPlugin extends Gdn_Plugin {
 
       $Path = '/'.Gdn::Request()->Path();
       $Query['Target'] = GetValue('Target', $_GET, $Path ? $Path : '/');
+      if (isset($_GET['Target']))
+         $Query['Target'] = $_GET['Target'];
       if ($Popup)
          $Query['display'] = 'popup';
 
        $Result = $UrlParts[0].'?'.http_build_query($Query);
       return $Result;
-   }
-
-   public function AuthenticationController_Render_Before($Sender, $Args) {
-      if (isset($Sender->ChooserList)) {
-         $Sender->ChooserList['PirateWeb'] = 'PirateWeb';
-      }
-      if (is_array($Sender->Data('AuthenticationConfigureList'))) {
-         $List = $Sender->Data('AuthenticationConfigureList');
-         $List['PirateWeb'] = '/dashboard/plugin/PirateWeb';
-         $Sender->SetData('AuthenticationConfigureList', $List);
-      }
    }
 
     /**
@@ -78,16 +69,22 @@ class PirateWebPlugin extends Gdn_Plugin {
         $OpenID->returnUrl = $UrlParts[0].'?'.http_build_query($Query);
         $OpenID->required = array('contact/email', 'namePerson/first', 'namePerson/last');
 
-        $this->EventArguments['OpenID'] = $OpenID;
+        $this->EventArguments['PirateWeb'] = $OpenID;
         $this->FireEvent('GetOpenID');
 
         return $OpenID;
     }
 
+    public function Setup() {
+        if (!ini_get('allow_url_fopen')) {
+            throw new Gdn_UserException('This plugin requires the allow_url_fopen php.ini setting.');
+        }
+    }
+
    /// Plugin Event Handlers ///
 
     public function Base_ConnectData_Handler($Sender, $Args) {
-        if (GetValue(0, $Args) != 'openid')
+        if (GetValue(0, $Args) != 'PirateWeb')
             return;
 
         $Mode = $Sender->Request->Get('openid_mode');
@@ -107,7 +104,6 @@ class PirateWebPlugin extends Gdn_Plugin {
 
             $Form = $Sender->Form; //new Gdn_Form();
             $ID = $OpenID->identity;
-            var_dump($ID);
             $Form->SetFormValue('UniqueID', $ID);
             $Form->SetFormValue('Provider', self::$ProviderKey);
             $Form->SetFormValue('ProviderName', 'PirateWeb');
@@ -178,7 +174,8 @@ class PirateWebPlugin extends Gdn_Plugin {
          // Add the PirateWeb method to the controller.
          $Method = array(
             'Name' => 'PirateWeb',
-            'SignInHtml' => "<a id=\"PirateWebAuth\" href=\"$SigninHref\" class=\"PopupWindow\" popupHref=\"$PopupSigninHref\" popupHeight=\"600\" popupWidth=\"800\" rel=\"nofollow\" ><img src=\"$ImgSrc\" alt=\"$ImgAlt\" /></a>");
+            'SignInHtml' => "<a id=\"PirateWebAuth\" href=\"$SigninHref\" class=\"PopupWindow\" popupHref=\"$PopupSigninHref\" popupHeight=\"600\" popupWidth=\"800\" rel=\"nofollow\" ><img src=\"$ImgSrc\" alt=\"$ImgAlt\" /></a>"
+         );
 
          $Sender->Data['Methods'][] = $Method;
       }
