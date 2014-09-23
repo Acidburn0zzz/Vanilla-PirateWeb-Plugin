@@ -66,7 +66,8 @@ class PirateWebPlugin extends Gdn_Plugin {
         // Check session before retrieving
         $Session = Gdn::Session();
 
-        if (isset($_GET['result']) and $_GET['result'] === 'success' and isset($_GET['ticket'])) {
+        if (!$Session->Stash('UserInfo', '', FALSE) and isset($_GET['result']) and
+            $_GET['result'] === 'success' and isset($_GET['ticket'])) {
             $ticket = $_GET['ticket'];
             unset($_GET['ticket']);
 
@@ -81,20 +82,17 @@ class PirateWebPlugin extends Gdn_Plugin {
             $openidHandle = (string) $xml->USER->OPENIDHANDLE;
 
             $memberInPiratpartietSweden = false;
-            $memberships = $xml->USER->MEMBERSHIPS->MEMBERSHIP;
-            //throw new Gdn_UserException(var_export($memberships, true));
-            if (is_array($memberships)) {
-                foreach ($memberships as $membership) {
-                    // I don't know why this is necessary, there are no nested arrays in the XML.
-                    //foreach ($memberships2 as $membership) {
-                        $attributes = $membership->attributes();
-                        $orgid = (string) $attributes['orgid'];
-                        // PPSE have orgid 1
-                        if ($orgid === '1') {
-                            $memberInPiratpartietSweden = true;
-                            break;
-                        }
-                    //}
+            $memberships = $xml->USER->MEMBERSHIPS;
+            foreach ($memberships as $memberships2) {
+                // I don't know why this is necessary, there are no nested arrays in the XML.
+                foreach ($memberships2 as $membership) {
+                    $attributes = $membership->attributes();
+                    $orgid = (string) $attributes['orgid'];
+                    // PPSE have orgid 1
+                    if ($orgid === '1') {
+                        $memberInPiratpartietSweden = true;
+                        break;
+                    }
                 }
             }
             if (!$memberInPiratpartietSweden) {
