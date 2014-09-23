@@ -29,113 +29,104 @@ $PluginInfo['PirateWeb'] = array(
 class PirateWebPlugin extends Gdn_Plugin {
     public static $ProviderKey = 'PirateWeb';
 
-   /// Properties ///
+    /// Properties ///
 
-   protected function _AuthorizeHref($Popup = FALSE) {
-      $Url = Url('/entry/PirateWeb', TRUE);
-      $UrlParts = explode('?', $Url);
-      parse_str(GetValue(1, $UrlParts, ''), $Query);
-
-      $Path = '/'.Gdn::Request()->Path();
-      $Query['Target'] = GetValue('Target', $_GET, $Path ? $Path : '/');
-      if (isset($_GET['Target']))
-         $Query['Target'] = $_GET['Target'];
-      if ($Popup)
-         $Query['display'] = 'popup';
-
-       $Result = $UrlParts[0].'?'.http_build_query($Query);
-      return $Result;
-   }
-
-    /**
-     * @return LightOpenID
-     */
-    public function GetOpenID() {
-        if (get_magic_quotes_gpc()) {
-            foreach ($_GET as $Name => $Value) {
-                $_GET[$Name] = stripslashes($Value);
-            }
-        }
-
-        $OpenID = new LightOpenID();
-
-        $OpenID->identity = 'http://login.piratpartiet.se/openid/xrds';
-
-        $Url = Url('/entry/connect/PirateWeb', TRUE);
+    protected function _AuthorizeHref($Popup = FALSE) {
+        $Url = Url('/entry/PirateWeb', TRUE);
         $UrlParts = explode('?', $Url);
         parse_str(GetValue(1, $UrlParts, ''), $Query);
-        $Query = array_merge($Query, ArrayTranslate($_GET, array('display', 'Target')));
 
-        $OpenID->returnUrl = $UrlParts[0].'?'.http_build_query($Query);
-        $OpenID->required = array('contact/email', 'namePerson/first', 'namePerson/last');
+        $Path = '/'.Gdn::Request()->Path();
+        $Query['Target'] = GetValue('Target', $_GET, $Path ? $Path : '/');
+        if (isset($_GET['Target']))
+            $Query['Target'] = $_GET['Target'];
+        if ($Popup)
+            $Query['display'] = 'popup';
 
-        $this->EventArguments['PirateWeb'] = $OpenID;
-        $this->FireEvent('GetOpenID');
-
-        return $OpenID;
+        $Result = $UrlParts[0].'?'.http_build_query($Query);
+        return $Result;
     }
 
+    /// Plugin Event Handlers ///
+
+    // Validate that the necessary config is set
     public function Setup() {
         if (!ini_get('allow_url_fopen')) {
             throw new Gdn_UserException('This plugin requires the allow_url_fopen php.ini setting.');
         }
     }
 
-   /// Plugin Event Handlers ///
-
+    // Handle the response from PirateWeb
     public function Base_ConnectData_Handler($Sender, $Args) {
         if (GetValue(0, $Args) != 'PirateWeb')
             return;
-
-        $Mode = $Sender->Request->Get('openid_mode');
-        if ($Mode != 'id_res')
-            return; // this will error out
 
         $this->EventArguments = $Args;
 
         // Check session before retrieving
         $Session = Gdn::Session();
-        $OpenID = $Session->Stash('OpenID', '', FALSE);
-        if (!$OpenID)
-            $OpenID = $this->GetOpenID();
 
-        if ($Session->Stash('OpenID', '', FALSE) || $OpenID->validate()) {
-            $Attr = $OpenID->getAttributes();
+        if (isset($_GET['result']) and $_GET['result'] === 'success' and isset($_GET['ticket'])) {
+            $ticket = $_GET['ticket'];
+            unset($_GET['ticket']);
 
-            $firstName = GetValue('namePerson/first', $Attr);
-            $lastName = GetValue('namePerson/last', $Attr);
+            $pirateWebValidateUrl = 'https://pirateweb.net/Pages/Security/ValidateTicket.aspx?ticket=';
+            $pirateWebValidateUrl .= $ticket;
 
-            if (!$firstName && isset($_GET['openid_ax_value_namePerson_first_1'])) {
-                $firstName = $_GET['openid_ax_value_namePerson_first_1'];
+            $xml = simplexml_load_file($pirateWebValidateUrl);
+
+            $firstName = (string) $xml->USER->GIVENNAME;
+            $lastName = (string) $xml->USER->SN;
+            $email = (string) $xml->USER->EMAIL;
+            $openidHandle = (string) $xml->USER->OPENIDHANDLE;
+
+            $memberInPiratpartietSweden = false;
+            foreach ($xml->USER->MEMBERSHIPS as $memberships) {
+                // I don't know why this is necessary, there are no nested arrays in the XML.
+                foreach ($memberships as $membership) {
+                    // PPSE have orgid 1
+                    if ((string) $membership->attributes()['orgid'] === '1') {
+                        $memberInPiratpartietSweden = true;
+                        break;
+                    }
+                }
             }
-            if (!$lastName && isset($_GET['openid_ax_value_namePerson_last_1'])) {
-                $lastName = $_GET['openid_ax_value_namePerson_last_1'];
+            if (!$memberInPiratpartietSweden) {
+                throw new Gdn_UserException('Du verkar inte vara medlem i Piratpartiet Sverige');
             }
 
+            $userInfo = array(
+                'firstName' => $firstName,
+                'lastName' => $lastName,
+                'email' => $email,
+                'openidHandle' => $openidHandle
+            );
+            $Session->Stash('UserInfo', $userInfo, FALSE);
+        }
+
+        if ($Session->Stash('UserInfo', '', FALSE)) {
+            $userInfo = $Session->Stash('UserInfo', '', FALSE);
 
             $Form = $Sender->Form; //new Gdn_Form();
-            $ID = $OpenID->identity;
-            $Form->SetFormValue('UniqueID', $ID);
+            $Form->SetFormValue('UniqueID', $userInfo['openidHandle']);
             $Form->SetFormValue('Provider', self::$ProviderKey);
             $Form->SetFormValue('ProviderName', 'PirateWeb');
-            $Form->SetFormValue('FullName', $firstName.' '.$lastName);
+            $Form->SetFormValue('FullName', $userInfo['firstName'].' '.$userInfo['lastName']);
+            $Form->SetFormValue('Email', $userInfo['email']);
 
             if (!$Form->GetFormValue('ConnectName')) {
-                $Form->SetFormValue('ConnectName', strtolower($firstName.'_'.$lastName));
-            }
-
-            if ($Email = GetValue('contact/email', $Attr)) {
-                $Form->SetFormValue('Email', $Email);
+                $Form->SetFormValue('ConnectName', strtolower($userInfo['firstName'].'_'.$userInfo['lastName']));
             }
 
             $Form->SetData($Form->FormValues());
-
-            $Sender->SetData('Verified', TRUE);
-            $Session->Stash('OpenID', $OpenID);
         }
+
+
+        $Sender->SetData('Verified', TRUE);
     }
 
     /**
+     * Redirect the user to the PirateWeb login page and tell it to send the user back to us later
      *
      * @param EntryController $Sender
      * @param array $Args
@@ -143,36 +134,16 @@ class PirateWebPlugin extends Gdn_Plugin {
     public function EntryController_PirateWeb_Create($Sender, $Args) {
         $this->EventArguments = $Args;
         $Sender->Form->InputPrefix = '';
-        $OpenID = $this->GetOpenID();
+        $pirateWebLoginUrl = 'https://pirateweb.net/Pages/Security/Login.aspx?openid=1&orgid=1&redirect=';
 
-        $Mode = $Sender->Request->Get('openid_mode');
-        switch($Mode) {
-            case 'cancel':
-                $Sender->Render('Cancel', '', 'plugins/PirateWeb');
-                break;
-            case 'id_res':
-                if ($OpenID->validate()) {
-                    $Attributes = $OpenID->getAttributes();
-                    print_r($_GET);
-                }
+        $Url = Url('/entry/connect/PirateWeb', TRUE);
+        $UrlParts = explode('?', $Url);
+        parse_str(GetValue(1, $UrlParts, ''), $Query);
+        $Query = array_merge($Query, ArrayTranslate($_GET, array('display', 'Target')));
 
-                break;
-            default:
-                if (!$OpenID->identity) {
-                    $Sender->CssClass = 'Dashboard Entry connect';
-                    $Sender->SetData('Title', T('Sign In with OpenID'));
-                    $Sender->Render('Url', '', 'plugins/PirateWeb');
-                } else {
-                    try {
-                        $Url = $OpenID->authUrl();
-                        Redirect($Url);
-                    } catch (Exception $Ex) {
-                        $Sender->Form->AddError($Ex);
-                        $Sender->Render('Url', '', 'plugins/PirateWeb');
-                    }
-                }
-                break;
-        }
+        $pirateWebLoginUrl .= urlencode($UrlParts[0].'?'.http_build_query($Query));
+
+        Redirect($pirateWebLoginUrl);
     }
 
    /**
