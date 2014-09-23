@@ -80,6 +80,7 @@ class PirateWebPlugin extends Gdn_Plugin {
             $lastName = (string) $xml->USER->SN;
             $email = (string) $xml->USER->EMAIL;
             $openidHandle = (string) $xml->USER->OPENIDHANDLE;
+            $openidHandle = 'http://login.piratpartiet.se/openid/'.$openidHandle.'/';
 
             $memberInPiratpartietSweden = false;
             $memberships = $xml->USER->MEMBERSHIPS;
