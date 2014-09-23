@@ -82,6 +82,7 @@ class PirateWebPlugin extends Gdn_Plugin {
 
             $memberInPiratpartietSweden = false;
             $memberships = $xml->USER->MEMBERSHIPS;
+            throw new Gdn_UserException(var_export($memberships, true));
             if (is_array($memberships)) {
                 foreach ($memberships as $memberships2) {
                     // I don't know why this is necessary, there are no nested arrays in the XML.
