@@ -81,15 +81,18 @@ class PirateWebPlugin extends Gdn_Plugin {
             $openidHandle = (string) $xml->USER->OPENIDHANDLE;
 
             $memberInPiratpartietSweden = false;
-            foreach ($xml->USER->MEMBERSHIPS as $memberships) {
-                // I don't know why this is necessary, there are no nested arrays in the XML.
-                foreach ($memberships as $membership) {
-                    $attributes = $membership->attributes();
-                    $orgid = (string) $attributes['orgid'];
-                    // PPSE have orgid 1
-                    if ($orgid === '1') {
-                        $memberInPiratpartietSweden = true;
-                        break;
+            $memberships = $xml->USER->MEMBERSHIPS;
+            if (is_array($memberships)) {
+                foreach ($memberships as $memberships2) {
+                    // I don't know why this is necessary, there are no nested arrays in the XML.
+                    foreach ($memberships2 as $membership) {
+                        $attributes = $membership->attributes();
+                        $orgid = (string) $attributes['orgid'];
+                        // PPSE have orgid 1
+                        if ($orgid === '1') {
+                            $memberInPiratpartietSweden = true;
+                            break;
+                        }
                     }
                 }
             }
