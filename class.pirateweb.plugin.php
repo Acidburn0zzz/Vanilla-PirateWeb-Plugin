@@ -100,6 +100,9 @@ class PirateWebPlugin extends Gdn_Plugin {
                 throw new Gdn_UserException('Du verkar inte vara medlem i Piratpartiet Sverige');
             }
 
+            $invalidUsernameChars = '/[^'.C("Garden.User.ValidationRegex",'\d\w_').']/';
+            $displayName = preg_replace($invalidUsernameChars, '_', $displayName);
+
             $userInfo = array(
                 'displayName' => $displayName,
                 'firstName' => $firstName,
