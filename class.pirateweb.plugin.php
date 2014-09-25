@@ -79,8 +79,8 @@ class PirateWebPlugin extends Gdn_Plugin {
             $firstName = (string) $xml->USER->GIVENNAME;
             $lastName = (string) $xml->USER->SN;
             $email = (string) $xml->USER->EMAIL;
-            $openidHandle = (string) $xml->USER->OPENIDHANDLE;
-            $openidHandle = 'http://login.piratpartiet.se/openid/'.$openidHandle.'/';
+            $displayName = (string) $xml->USER->OPENIDHANDLE;
+            $openidHandle = 'http://login.piratpartiet.se/openid/'.$displayName.'/';
 
             $memberInPiratpartietSweden = false;
             $memberships = $xml->USER->MEMBERSHIPS;
@@ -101,6 +101,7 @@ class PirateWebPlugin extends Gdn_Plugin {
             }
 
             $userInfo = array(
+                'displayName' => $displayName,
                 'firstName' => $firstName,
                 'lastName' => $lastName,
                 'email' => $email,
@@ -121,8 +122,8 @@ class PirateWebPlugin extends Gdn_Plugin {
 
             // If the user have not entered a name (when we creates the form for the first time)
             if (!$Form->GetFormValue('ConnectName')) {
-                // Suggest the openidHandle from PW (nickname in the old forum)
-                $Form->SetFormValue('ConnectName', $userInfo['openidHandle']);
+                // Suggest the displayName from PW (nickname in the old forum)
+                $Form->SetFormValue('ConnectName', $userInfo['displayName']);
             }
 
             $Form->SetData($Form->FormValues());
