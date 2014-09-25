@@ -119,8 +119,10 @@ class PirateWebPlugin extends Gdn_Plugin {
             $Form->SetFormValue('FullName', $userInfo['firstName'].' '.$userInfo['lastName']);
             $Form->SetFormValue('Email', $userInfo['email']);
 
+            // If the user have not entered a name (when we creates the form for the first time)
             if (!$Form->GetFormValue('ConnectName')) {
-                $Form->SetFormValue('ConnectName', strtolower($userInfo['firstName'].'_'.$userInfo['lastName']));
+                // Suggest the openidHandle from PW (nickname in the old forum)
+                $Form->SetFormValue('ConnectName', $userInfo['openidHandle']);
             }
 
             $Form->SetData($Form->FormValues());
