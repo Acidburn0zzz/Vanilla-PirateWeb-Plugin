@@ -31,21 +31,6 @@ class PirateWebPlugin extends Gdn_Plugin {
 
     /// Properties ///
 
-    protected function _AuthorizeHref($Popup = FALSE) {
-        $Url = Url('/entry/PirateWeb', TRUE);
-        $UrlParts = explode('?', $Url);
-        parse_str(GetValue(1, $UrlParts, ''), $Query);
-
-        $Path = '/'.Gdn::Request()->Path();
-        $Query['Target'] = GetValue('Target', $_GET, $Path ? $Path : '/');
-        if (isset($_GET['Target']))
-            $Query['Target'] = $_GET['Target'];
-        if ($Popup)
-            $Query['display'] = 'popup';
-
-        $Result = $UrlParts[0].'?'.http_build_query($Query);
-        return $Result;
-    }
 
     /// Plugin Event Handlers ///
 
@@ -54,6 +39,10 @@ class PirateWebPlugin extends Gdn_Plugin {
         if (!ini_get('allow_url_fopen')) {
             throw new Gdn_UserException('This plugin requires the allow_url_fopen php.ini setting.');
         }
+    }
+
+    public function Gdn_Smarty_init_handler($sender) {
+        $sender->register_function('pw_link', 'PirateAuthorizeHref');
     }
 
     // Handle the response from PirateWeb
@@ -164,8 +153,8 @@ class PirateWebPlugin extends Gdn_Plugin {
    public function EntryController_SignIn_Handler($Sender, $Args) {
 
       if (isset($Sender->Data['Methods'])) {
-         $SigninHref = $this->_AuthorizeHref();
-         $PopupSigninHref = $this->_AuthorizeHref(TRUE);
+         $SigninHref = PirateAuthorizeHref(null, $ignored);
+         $PopupSigninHref = PirateAuthorizeHref(null, $ignored, TRUE);
 
          // Add the PirateWeb method to the controller.
          $Method = array(
@@ -186,8 +175,8 @@ class PirateWebPlugin extends Gdn_Plugin {
 	}
 
 	private function _GetButton() {
-      $SigninHref = $this->_AuthorizeHref();
-      $PopupSigninHref = $this->_AuthorizeHref(TRUE);
+      $SigninHref = PirateAuthorizeHref(null, $ignored);
+      $PopupSigninHref = PirateAuthorizeHref(null, $ignored, TRUE);
       return "<a id=\"PirateWebAuth\" href=\"$SigninHref\" class=\"PopupWindow Button Primary\" popupHref=\"$PopupSigninHref\" popupHeight=\"600\" popupWidth=\"800\" rel=\"nofollow\" >Logga in via PirateWeb</a>";
    }
 
@@ -196,4 +185,24 @@ class PirateWebPlugin extends Gdn_Plugin {
 		if (!Gdn::Session()->IsValid())
 			echo "\n".Wrap($this->_GetButton(), 'li', array('class' => 'Connect PirateWebConnect'));
 	}
+}
+
+function PirateAuthorizeHref($params, &$smarty, $Popup = FALSE) {
+    decho($params);
+    decho($smarty);
+    decho($Popup);
+
+    $Url = Url('/entry/PirateWeb', TRUE);
+    $UrlParts = explode('?', $Url);
+    parse_str(GetValue(1, $UrlParts, ''), $Query);
+
+    $Path = '/'.Gdn::Request()->Path();
+    $Query['Target'] = GetValue('Target', $_GET, $Path ? $Path : '/');
+    if (isset($_GET['Target']))
+        $Query['Target'] = $_GET['Target'];
+    if ($Popup)
+        $Query['display'] = 'popup';
+
+    $Result = $UrlParts[0].'?'.http_build_query($Query);
+    return $Result;
 }
