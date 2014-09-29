@@ -31,6 +31,27 @@ class PirateWebPlugin extends Gdn_Plugin {
 
     /// Properties ///
 
+    // Upgrades the saved user info to point to the member number instead of the openidhandle
+    public function UpgradeToMemberNumber($userinfo) {
+        $model = new Gdn_Model('User');
+
+        $auth = $model->SQL
+            ->GetWhere('UserAuthentication', array(
+                    'ForeignUserKey' => $userinfo['openidHandle'],
+                    'ProviderKey' => self::$ProviderKey
+                ))
+            ->FirstRow(DATASET_TYPE_ARRAY);
+
+        if ($auth) {
+            $model->SQL->Put('UserAuthentication', array(
+                    'ForeignUserKey' => $userinfo['memberNumber']
+                ), array(
+                    'ForeignUserKey' => $userinfo['openidHandle'],
+                    'ProviderKey' => self::$ProviderKey
+                ), 1
+            );
+        }
+    }
 
     /// Plugin Event Handlers ///
 
@@ -65,6 +86,7 @@ class PirateWebPlugin extends Gdn_Plugin {
 
             $xml = simplexml_load_file($pirateWebValidateUrl);
 
+            $memberNumber = (string) $xml->USER->ID;
             $firstName = (string) $xml->USER->GIVENNAME;
             $lastName = (string) $xml->USER->SN;
             $email = (string) $xml->USER->EMAIL;
@@ -92,7 +114,9 @@ class PirateWebPlugin extends Gdn_Plugin {
             $invalidUsernameChars = '/[^'.C("Garden.User.ValidationRegex",'\d\w_').']/';
             $displayName = preg_replace($invalidUsernameChars, '_', $displayName);
 
+
             $userInfo = array(
+                'memberNumber' => $memberNumber,
                 'displayName' => $displayName,
                 'firstName' => $firstName,
                 'lastName' => $lastName,
@@ -105,8 +129,10 @@ class PirateWebPlugin extends Gdn_Plugin {
         if ($Session->Stash('UserInfo', '', FALSE)) {
             $userInfo = $Session->Stash('UserInfo', '', FALSE);
 
+            $this->UpgradeToMemberNumber($userInfo);
+
             $Form = $Sender->Form; //new Gdn_Form();
-            $Form->SetFormValue('UniqueID', $userInfo['openidHandle']);
+            $Form->SetFormValue('UniqueID', $userInfo['memberNumber']);
             $Form->SetFormValue('Provider', self::$ProviderKey);
             $Form->SetFormValue('ProviderName', 'PirateWeb');
             $Form->SetFormValue('FullName', $userInfo['firstName'].' '.$userInfo['lastName']);
