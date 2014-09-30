@@ -169,6 +169,10 @@ class PirateWebPlugin extends Gdn_Plugin {
 
         $pirateWebLoginUrl .= urlencode($UrlParts[0].'?'.http_build_query($Query));
 
+        // Pull UserInfo from session to make sure we get a clean set
+        $Session = Gdn::Session();
+        $Session->Stash('UserInfo', '', true);
+
         Redirect($pirateWebLoginUrl);
     }
 
